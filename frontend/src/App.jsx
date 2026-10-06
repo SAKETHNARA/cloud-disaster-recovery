@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Backup from "./pages/Backup";
 import BackupHistory from "./pages/BackupHistory";
+import Disaster from "./pages/Disaster";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 import Login from "./pages/Login";
@@ -43,13 +44,20 @@ function ProtectedLayout() {
               element={<BackupHistory />}
             />
 
+            {/* Disaster Simulation */}
+            <Route
+              path="/disaster"
+              element={<Disaster />}
+            />
+
             {/* Remaining pages */}
             {menuItems
               .filter(
                 (item) =>
                   item.path !== "/" &&
                   item.path !== "/backup" &&
-                  item.path !== "/history"
+                  item.path !== "/history" &&
+                  item.path !== "/disaster"
               )
               .map((item) => (
 
@@ -71,6 +79,7 @@ function ProtectedLayout() {
           </Routes>
 
         </main>
+
       </div>
     </ProtectedRoute>
   );
@@ -82,7 +91,7 @@ function App() {
   return (
     <Routes>
 
-      {/* Public pages */}
+      {/* Public */}
       <Route
         path="/login"
         element={<Login />}

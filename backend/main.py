@@ -2,7 +2,7 @@
 # FastAPI backend for the Cloud-Based Disaster Recovery Management System.
 
 from datetime import datetime, timezone
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from typing import List
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
@@ -36,6 +36,18 @@ app.add_middleware(
 
 
 # ---------------------------------------------------------
+# PROJECT PATHS
+# ---------------------------------------------------------
+
+# Project root:
+# cloud-disaster-recovery/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Safe demo folder used only for disaster simulation.
+DEMO_FOLDER = PROJECT_ROOT / "demo_files"
+
+
+# ---------------------------------------------------------
 # BASIC ROUTES
 # ---------------------------------------------------------
 
@@ -57,7 +69,9 @@ def health_check():
         "backend": "online",
         "cloud_storage": "unknown",
         "database": "unknown",
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "checked_at": datetime.now(
+            timezone.utc
+        ).isoformat(),
     }
 
     # Check Supabase Storage
@@ -65,7 +79,9 @@ def health_check():
         buckets = supabase.storage.list_buckets()
 
         result["cloud_storage"] = "online"
-        result["buckets"] = [b.name for b in buckets]
+        result["buckets"] = [
+            bucket.name for bucket in buckets
+        ]
 
     except Exception as error:
         result["cloud_storage"] = "offline"
@@ -95,7 +111,9 @@ def health_check():
 # AUTHENTICATION HELPER
 # ---------------------------------------------------------
 
-def get_authenticated_user(authorization: str | None):
+def get_authenticated_user(
+    authorization: str | None
+):
 
     if not authorization:
         raise HTTPException(
@@ -109,7 +127,10 @@ def get_authenticated_user(authorization: str | None):
             detail="Invalid authorization format.",
         )
 
-    token = authorization.split(" ", 1)[1].strip()
+    token = authorization.split(
+        " ",
+        1
+    )[1].strip()
 
     if not token:
         raise HTTPException(
@@ -118,9 +139,13 @@ def get_authenticated_user(authorization: str | None):
         )
 
     try:
+
         response = supabase.auth.get_user(token)
 
-        if not response or not response.user:
+        if (
+            not response
+            or not response.user
+        ):
             raise HTTPException(
                 status_code=401,
                 detail="Invalid or expired access token.",
@@ -157,7 +182,10 @@ async def create_backup(
     authorization: str | None = Header(default=None),
 ):
 
-    user = get_authenticated_user(authorization)
+    user = get_authenticated_user(
+        authorization
+    )
+
     user_id = str(user.id)
 
     if not files:
@@ -171,7 +199,7 @@ async def create_backup(
     if not backup_name:
         backup_name = "Manual Backup"
 
-    # Create backup record
+    # Create backup database record.
     backup_response = (
         supabase
         .table("backups")
@@ -194,6 +222,7 @@ async def create_backup(
         )
 
     backup = backup_response.data[0]
+
     backup_id = backup["id"]
 
     uploaded_paths = []
@@ -203,7 +232,7 @@ async def create_backup(
 
     try:
 
-        # Upload every file
+        # Upload every file.
         for upload_file in files:
 
             if not upload_file.filename:
@@ -212,7 +241,9 @@ async def create_backup(
                     detail="One of the selected files has no filename.",
                 )
 
-            safe_filename = PurePath(upload_file.filename).name
+            safe_filename = PurePath(
+                upload_file.filename
+            ).name
 
             if not safe_filename:
                 raise HTTPException(
@@ -227,14 +258,21 @@ async def create_backup(
             if file_size > MAX_FILE_SIZE:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"{safe_filename} is larger than 5 MB.",
+                    detail=(
+                        f"{safe_filename} "
+                        "is larger than 5 MB."
+                    ),
                 )
 
             storage_path = (
-                f"{user_id}/{backup_id}/{safe_filename}"
+                f"{user_id}/"
+                f"{backup_id}/"
+                f"{safe_filename}"
             )
 
-            supabase.storage.from_(BUCKET).upload(
+            supabase.storage.from_(
+                BUCKET
+            ).upload(
                 path=storage_path,
                 file=content,
                 file_options={
@@ -246,7 +284,9 @@ async def create_backup(
                 },
             )
 
-            uploaded_paths.append(storage_path)
+            uploaded_paths.append(
+                storage_path
+            )
 
             backup_file_records.append(
                 {
@@ -261,39 +301,58 @@ async def create_backup(
 
             total_size += file_size
 
-        # Save file records
+        # Save file records.
         if backup_file_records:
-            supabase.table("backup_files").insert(
+
+            supabase.table(
+                "backup_files"
+            ).insert(
                 backup_file_records
             ).execute()
 
-        # Mark backup successful
+        # Mark backup successful.
         completed_at = datetime.now(
             timezone.utc
         ).isoformat()
 
-        supabase.table("backups").update(
+        supabase.table(
+            "backups"
+        ).update(
             {
                 "status": "success",
-                "total_files": len(backup_file_records),
+                "total_files": len(
+                    backup_file_records
+                ),
                 "total_size_bytes": total_size,
                 "completed_at": completed_at,
             }
-        ).eq("id", backup_id).eq(
-            "user_id", user_id
+        ).eq(
+            "id",
+            backup_id
+        ).eq(
+            "user_id",
+            user_id
         ).execute()
 
         return {
             "message": "Backup completed successfully.",
             "backup_id": backup_id,
             "backup_name": backup_name,
-            "total_files": len(backup_file_records),
+            "total_files": len(
+                backup_file_records
+            ),
             "total_size_bytes": total_size,
             "files": [
                 {
-                    "file_name": record["file_name"],
-                    "storage_path": record["storage_path"],
-                    "file_size_bytes": record["file_size_bytes"],
+                    "file_name": record[
+                        "file_name"
+                    ],
+                    "storage_path": record[
+                        "storage_path"
+                    ],
+                    "file_size_bytes": record[
+                        "file_size_bytes"
+                    ],
                 }
                 for record in backup_file_records
             ],
@@ -302,22 +361,31 @@ async def create_backup(
     except HTTPException:
 
         if uploaded_paths:
+
             try:
-                supabase.storage.from_(BUCKET).remove(
+                supabase.storage.from_(
+                    BUCKET
+                ).remove(
                     uploaded_paths
                 )
             except Exception:
                 pass
 
-        supabase.table("backups").update(
+        supabase.table(
+            "backups"
+        ).update(
             {
                 "status": "failed",
                 "completed_at": datetime.now(
                     timezone.utc
                 ).isoformat(),
             }
-        ).eq("id", backup_id).eq(
-            "user_id", user_id
+        ).eq(
+            "id",
+            backup_id
+        ).eq(
+            "user_id",
+            user_id
         ).execute()
 
         raise
@@ -325,22 +393,31 @@ async def create_backup(
     except Exception as error:
 
         if uploaded_paths:
+
             try:
-                supabase.storage.from_(BUCKET).remove(
+                supabase.storage.from_(
+                    BUCKET
+                ).remove(
                     uploaded_paths
                 )
             except Exception:
                 pass
 
-        supabase.table("backups").update(
+        supabase.table(
+            "backups"
+        ).update(
             {
                 "status": "failed",
                 "completed_at": datetime.now(
                     timezone.utc
                 ).isoformat(),
             }
-        ).eq("id", backup_id).eq(
-            "user_id", user_id
+        ).eq(
+            "id",
+            backup_id
+        ).eq(
+            "user_id",
+            user_id
         ).execute()
 
         raise HTTPException(
@@ -358,12 +435,14 @@ def get_backup_history(
     authorization: str | None = Header(default=None),
 ):
 
-    user = get_authenticated_user(authorization)
+    user = get_authenticated_user(
+        authorization
+    )
+
     user_id = str(user.id)
 
     try:
 
-        # Get only this user's backups.
         backup_response = (
             supabase
             .table("backups")
@@ -376,14 +455,22 @@ def get_backup_history(
                 "created_at,"
                 "completed_at"
             )
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
+            .eq(
+                "user_id",
+                user_id
+            )
+            .order(
+                "created_at",
+                desc=True
+            )
             .execute()
         )
 
-        backups = backup_response.data or []
+        backups = (
+            backup_response.data
+            or []
+        )
 
-        # Get file records for those backups.
         if backups:
 
             backup_ids = [
@@ -401,32 +488,57 @@ def get_backup_history(
                     "file_size_bytes,"
                     "file_type"
                 )
-                .eq("user_id", user_id)
-                .in_("backup_id", backup_ids)
-                .order("created_at", desc=False)
+                .eq(
+                    "user_id",
+                    user_id
+                )
+                .in_(
+                    "backup_id",
+                    backup_ids
+                )
+                .order(
+                    "created_at",
+                    desc=False
+                )
                 .execute()
             )
 
-            files = files_response.data or []
+            files = (
+                files_response.data
+                or []
+            )
 
             files_by_backup = {}
 
             for file in files:
-                backup_id = file["backup_id"]
 
-                if backup_id not in files_by_backup:
-                    files_by_backup[backup_id] = []
+                backup_id = file[
+                    "backup_id"
+                ]
 
-                files_by_backup[backup_id].append(file)
+                if (
+                    backup_id
+                    not in files_by_backup
+                ):
+                    files_by_backup[
+                        backup_id
+                    ] = []
+
+                files_by_backup[
+                    backup_id
+                ].append(file)
 
         else:
+
             files_by_backup = {}
 
-        # Attach files to each backup.
         for backup in backups:
-            backup["files"] = files_by_backup.get(
-                backup["id"],
-                []
+
+            backup["files"] = (
+                files_by_backup.get(
+                    backup["id"],
+                    []
+                )
             )
 
         return {
@@ -438,5 +550,159 @@ def get_backup_history(
 
         raise HTTPException(
             status_code=500,
-            detail=f"Could not load backup history: {str(error)}",
+            detail=(
+                "Could not load backup history: "
+                f"{str(error)}"
+            ),
+        )
+
+
+# ---------------------------------------------------------
+# DISASTER SIMULATION
+# ---------------------------------------------------------
+
+@app.get("/api/disaster/files")
+def get_demo_files(
+    authorization: str | None = Header(default=None),
+):
+
+    # Authentication check.
+    get_authenticated_user(
+        authorization
+    )
+
+    DEMO_FOLDER.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    files = []
+
+    for path in DEMO_FOLDER.iterdir():
+
+        # Only show regular files.
+        if path.is_file():
+
+            files.append(
+                {
+                    "name": path.name,
+                    "size": path.stat().st_size,
+                }
+            )
+
+    return {
+        "folder": "demo_files",
+        "file_count": len(files),
+        "files": files,
+    }
+
+
+@app.post("/api/disaster/simulate")
+def simulate_disaster(
+    authorization: str | None = Header(default=None),
+):
+
+    user = get_authenticated_user(
+        authorization
+    )
+
+    user_id = str(user.id)
+
+    DEMO_FOLDER.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    demo_files = [
+        path
+        for path in DEMO_FOLDER.iterdir()
+        if path.is_file()
+    ]
+
+    if not demo_files:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No files are available in "
+                "the demo_files folder. "
+                "Add a demo file before simulating "
+                "a disaster."
+            ),
+        )
+
+    deleted_files = []
+
+    try:
+
+        # Delete only files directly inside
+        # the safe demo_files folder.
+        for path in demo_files:
+
+            path.unlink()
+
+            deleted_files.append(
+                path.name
+            )
+
+        # Record the simulated disaster.
+        disaster_response = (
+            supabase
+            .table("disaster_events")
+            .insert(
+                {
+                    "user_id": user_id,
+                    "disaster_type": (
+                        "accidental_deletion"
+                    ),
+                    "files_affected": len(
+                        deleted_files
+                    ),
+                    "occurred_at": datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+                    "status": "active",
+                }
+            )
+            .execute()
+        )
+
+        if not disaster_response.data:
+            raise Exception(
+                "Disaster event was not recorded."
+            )
+
+        disaster = (
+            disaster_response.data[0]
+        )
+
+        return {
+            "message": (
+                "Disaster simulation completed."
+            ),
+            "disaster_id": disaster["id"],
+            "disaster_type": (
+                disaster["disaster_type"]
+            ),
+            "files_affected": len(
+                deleted_files
+            ),
+            "deleted_files": deleted_files,
+            "status": disaster["status"],
+            "occurred_at": (
+                disaster["occurred_at"]
+            ),
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Disaster simulation failed: "
+                f"{str(error)}"
+            ),
         )
