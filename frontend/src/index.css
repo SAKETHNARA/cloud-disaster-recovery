@@ -777,3 +777,181 @@ body {
   font-size: 13px;
   line-height: 1.8;
 }
+/* ---------- Phase 12 Dashboard ---------- */
+
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.dashboard-message {
+  text-align: center;
+  padding: 35px;
+  color: #64748b;
+}
+
+.recent-backups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.recent-backup-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.recent-backup-card h3 {
+  margin-bottom: 5px;
+}
+
+.recent-backup-card p {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.recent-backup-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #475569;
+  font-size: 14px;
+}
+
+
+/* ---------- System Status ---------- */
+
+.system-status-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.system-status-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-left: 5px solid #16a34a;
+}
+
+.system-status-card.offline {
+  border-left-color: #dc2626;
+}
+
+.system-status-icon {
+  font-size: 32px;
+}
+
+.system-status-card h2 {
+  font-size: 17px;
+  margin-bottom: 7px;
+}
+
+.system-online {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.system-offline {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.status-summary {
+  max-width: 800px;
+  margin-top: 20px;
+}
+
+.status-summary h2 {
+  margin-bottom: 16px;
+}
+
+.status-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.status-summary-row span {
+  color: #64748b;
+}
+
+.status-summary-row strong {
+  word-break: break-word;
+}
+
+
+/* ---------- Cloud Storage ---------- */
+
+.storage-summary-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.storage-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.storage-summary-card span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.storage-summary-card strong {
+  font-size: 20px;
+}
+
+.storage-files-card {
+  width: 100%;
+}
+
+.storage-files-card h2 {
+  margin-bottom: 18px;
+}
+
+.storage-file-list {
+  border-top: 1px solid #e2e8f0;
+}
+
+.storage-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.storage-file-row strong {
+  font-size: 14px;
+}
+
+.storage-file-row p {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.storage-file-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  color: #64748b;
+  font-size: 13px;
+  white-space: nowrap;
+}

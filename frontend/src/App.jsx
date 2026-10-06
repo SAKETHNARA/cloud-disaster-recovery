@@ -8,6 +8,8 @@ import BackupHistory from "./pages/BackupHistory";
 import Disaster from "./pages/Disaster";
 import Restore from "./pages/Restore";
 import RecoveryHistory from "./pages/RecoveryHistory";
+import SystemStatus from "./pages/SystemStatus";
+import CloudStorage from "./pages/CloudStorage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 import Login from "./pages/Login";
@@ -58,6 +60,16 @@ function ProtectedLayout() {
               element={<RecoveryHistory />}
             />
 
+            <Route
+              path="/status"
+              element={<SystemStatus />}
+            />
+
+            <Route
+              path="/storage"
+              element={<CloudStorage />}
+            />
+
             {menuItems
               .filter(
                 (item) =>
@@ -66,7 +78,9 @@ function ProtectedLayout() {
                   item.path !== "/history" &&
                   item.path !== "/disaster" &&
                   item.path !== "/restore" &&
-                  item.path !== "/recovery-history"
+                  item.path !== "/recovery-history" &&
+                  item.path !== "/status" &&
+                  item.path !== "/storage"
               )
               .map((item) => (
                 <Route
