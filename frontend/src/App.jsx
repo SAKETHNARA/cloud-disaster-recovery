@@ -1,10 +1,15 @@
 import { Routes, Route } from "react-router-dom";
+
 import Sidebar from "./components/Sidebar";
+
 import Dashboard from "./pages/Dashboard";
+import Backup from "./pages/Backup";
 import PlaceholderPage from "./pages/PlaceholderPage";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./pages/ProtectedRoute";
+
 import { menuItems } from "./menu";
 
 function ProtectedLayout() {
@@ -15,10 +20,19 @@ function ProtectedLayout() {
 
         <main className="content">
           <Routes>
+            {/* Dashboard */}
             <Route path="/" element={<Dashboard />} />
 
+            {/* Real Backup page */}
+            <Route path="/backup" element={<Backup />} />
+
+            {/* Remaining pages are still placeholders */}
             {menuItems
-              .filter((item) => item.path !== "/")
+              .filter(
+                (item) =>
+                  item.path !== "/" &&
+                  item.path !== "/backup"
+              )
               .map((item) => (
                 <Route
                   key={item.path}
@@ -43,9 +57,11 @@ function ProtectedLayout() {
 function App() {
   return (
     <Routes>
+      {/* Public pages */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
+      {/* All application pages require login */}
       <Route path="*" element={<ProtectedLayout />} />
     </Routes>
   );
