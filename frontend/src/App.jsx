@@ -10,6 +10,7 @@ import Restore from "./pages/Restore";
 import RecoveryHistory from "./pages/RecoveryHistory";
 import SystemStatus from "./pages/SystemStatus";
 import CloudStorage from "./pages/CloudStorage";
+import AdminDashboard from "./pages/AdminDashboard";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 import Login from "./pages/Login";
@@ -68,6 +69,11 @@ function ProtectedLayout() {
             <Route
               path="/storage"
               element={<CloudStorage />}
+            />
+
+            <Route
+              path="/admin"
+              element={<AdminDashboard />}
             />
 
             {menuItems

@@ -1674,3 +1674,267 @@ def get_cloud_storage(
                 f"{str(error)}"
             ),
         )
+# =========================================================
+# ADMIN AUTHENTICATION HELPER
+# =========================================================
+
+def get_admin_user(
+    authorization: str | None
+):
+    """
+    Authenticate the user and verify that
+    their profile role is admin.
+    """
+
+    user = get_authenticated_user(
+        authorization
+    )
+
+    user_id = str(user.id)
+
+    try:
+
+        profile_response = (
+            supabase
+            .table("profiles")
+            .select("id,full_name,role")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+
+        if not profile_response.data:
+            raise HTTPException(
+                status_code=403,
+                detail="User profile not found.",
+            )
+
+        profile = profile_response.data[0]
+
+        if profile["role"] != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Admin access required.",
+            )
+
+        return user, profile
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not verify admin role: {str(error)}",
+        )
+
+
+# =========================================================
+# ADMIN DASHBOARD API
+# =========================================================
+
+@app.get("/api/admin/dashboard")
+def get_admin_dashboard(
+    authorization: str | None = Header(
+        default=None
+    ),
+):
+
+    user, profile = get_admin_user(
+        authorization
+    )
+
+    try:
+
+        # -------------------------------------------------
+        # Users
+        # -------------------------------------------------
+
+        users_response = (
+            supabase
+            .table("profiles")
+            .select(
+                "id,full_name,role,created_at"
+            )
+            .order(
+                "created_at",
+                desc=True
+            )
+            .execute()
+        )
+
+        users = users_response.data or []
+
+        # -------------------------------------------------
+        # Backups
+        # -------------------------------------------------
+
+        backups_response = (
+            supabase
+            .table("backups")
+            .select(
+                "id,user_id,backup_name,status,"
+                "total_files,total_size_bytes,"
+                "created_at,completed_at"
+            )
+            .order(
+                "created_at",
+                desc=True
+            )
+            .execute()
+        )
+
+        backups = (
+            backups_response.data
+            or []
+        )
+
+        # -------------------------------------------------
+        # Disaster events
+        # -------------------------------------------------
+
+        disasters_response = (
+            supabase
+            .table("disaster_events")
+            .select(
+                "id,user_id,disaster_type,"
+                "files_affected,occurred_at,status"
+            )
+            .order(
+                "occurred_at",
+                desc=True
+            )
+            .execute()
+        )
+
+        disasters = (
+            disasters_response.data
+            or []
+        )
+
+        # -------------------------------------------------
+        # Recovery logs
+        # -------------------------------------------------
+
+        recoveries_response = (
+            supabase
+            .table("recovery_logs")
+            .select(
+                "id,user_id,disaster_id,backup_id,"
+                "files_recovered,files_failed,"
+                "rpo_seconds,rto_seconds,"
+                "status,recovery_started_at,"
+                "recovery_completed_at"
+            )
+            .order(
+                "recovery_started_at",
+                desc=True
+            )
+            .execute()
+        )
+
+        recoveries = (
+            recoveries_response.data
+            or []
+        )
+
+        # -------------------------------------------------
+        # Statistics
+        # -------------------------------------------------
+
+        total_users = len(users)
+
+        total_backups = len(backups)
+
+        successful_backups = sum(
+            1
+            for backup in backups
+            if backup["status"] == "success"
+        )
+
+        failed_backups = sum(
+            1
+            for backup in backups
+            if backup["status"] == "failed"
+        )
+
+        total_disasters = len(disasters)
+
+        active_disasters = sum(
+            1
+            for disaster in disasters
+            if disaster["status"] == "active"
+        )
+
+        total_recoveries = len(recoveries)
+
+        successful_recoveries = sum(
+            1
+            for recovery in recoveries
+            if recovery["status"] == "success"
+        )
+
+        recovered_files = sum(
+            int(
+                recovery.get(
+                    "files_recovered"
+                )
+                or 0
+            )
+            for recovery in recoveries
+        )
+
+        total_storage_bytes = sum(
+            int(
+                backup.get(
+                    "total_size_bytes"
+                )
+                or 0
+            )
+            for backup in backups
+        )
+
+        # -------------------------------------------------
+        # Recent activity
+        # -------------------------------------------------
+
+        recent_backups = backups[:10]
+        recent_disasters = disasters[:10]
+        recent_recoveries = recoveries[:10]
+
+        return {
+            "admin": {
+                "id": profile["id"],
+                "full_name": profile["full_name"],
+                "role": profile["role"],
+            },
+            "statistics": {
+                "total_users": total_users,
+                "total_backups": total_backups,
+                "successful_backups": successful_backups,
+                "failed_backups": failed_backups,
+                "total_disasters": total_disasters,
+                "active_disasters": active_disasters,
+                "total_recoveries": total_recoveries,
+                "successful_recoveries": successful_recoveries,
+                "recovered_files": recovered_files,
+                "total_storage_bytes": total_storage_bytes,
+            },
+            "users": users[:20],
+            "recent_backups": recent_backups,
+            "recent_disasters": recent_disasters,
+            "recent_recoveries": recent_recoveries,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Could not load admin dashboard: "
+                f"{str(error)}"
+            ),
+        )

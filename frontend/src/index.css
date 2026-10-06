@@ -955,3 +955,70 @@ body {
   font-size: 13px;
   white-space: nowrap;
 }
+/* ---------- Admin Dashboard ---------- */
+
+.admin-role-banner {
+  display: inline-block;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+}
+
+.admin-table-card {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-table {
+  min-width: 650px;
+}
+
+.admin-table-header,
+.admin-table-row {
+  display: grid;
+  grid-template-columns:
+    1.5fr 0.8fr 1.2fr;
+  gap: 20px;
+  align-items: center;
+  padding: 14px 12px;
+}
+
+.admin-table-header {
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 700;
+}
+
+.admin-table-row {
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.admin-table-row:hover {
+  background: #f8fafc;
+}
+
+.admin-role {
+  display: inline-block;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.user-role {
+  display: inline-block;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
