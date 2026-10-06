@@ -34,22 +34,32 @@ def home():
 @app.get("/api/health")
 def health_check():
     """
-    Checks that the backend is up AND that it can reach Supabase cloud storage.
-    The System Status page will use this in Phase 12.
+    Checks that the backend is up AND that it can reach
+    Supabase cloud storage and the cloud database.
     """
     result = {
         "backend": "online",
         "cloud_storage": "unknown",
+        "database": "unknown",
         "checked_at": datetime.now(timezone.utc).isoformat(),
     }
 
+    # Real call to cloud storage: list the buckets in the project.
     try:
-        # Real call to the cloud: list the storage buckets in the project.
         buckets = supabase.storage.list_buckets()
         result["cloud_storage"] = "online"
         result["buckets"] = [b.name for b in buckets]
     except Exception as error:
         result["cloud_storage"] = "offline"
-        result["error"] = str(error)
+        result["storage_error"] = str(error)
+
+    # Real call to the cloud database: count rows in the backups table.
+    try:
+        response = supabase.table("backups").select("id", count="exact").limit(1).execute()
+        result["database"] = "online"
+        result["backups_count"] = response.count
+    except Exception as error:
+        result["database"] = "offline"
+        result["database_error"] = str(error)
 
     return result
