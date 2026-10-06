@@ -25,7 +25,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://127.0.0.1:5173"],
+    allow_origins=[
+        FRONTEND_URL,
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,11 +41,18 @@ app.add_middleware(
 
 @app.get("/")
 def home():
-    return {"message": "Cloud DR backend is running"}
+    return {
+        "message": "Cloud DR backend is running"
+    }
 
+
+# ---------------------------------------------------------
+# HEALTH CHECK
+# ---------------------------------------------------------
 
 @app.get("/api/health")
 def health_check():
+
     result = {
         "backend": "online",
         "cloud_storage": "unknown",
@@ -86,12 +96,6 @@ def health_check():
 # ---------------------------------------------------------
 
 def get_authenticated_user(authorization: str | None):
-    """
-    Reads the Supabase access token from:
-    Authorization: Bearer <token>
-
-    The frontend sends this token after login.
-    """
 
     if not authorization:
         raise HTTPException(
@@ -135,12 +139,16 @@ def get_authenticated_user(authorization: str | None):
 
 
 # ---------------------------------------------------------
-# BACKUP FILES API
+# BACKUP CONFIGURATION
 # ---------------------------------------------------------
 
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 BUCKET = "backups"
 
+
+# ---------------------------------------------------------
+# CREATE BACKUP
+# ---------------------------------------------------------
 
 @app.post("/api/backups")
 async def create_backup(
@@ -148,15 +156,6 @@ async def create_backup(
     backup_name: str = Form("Manual Backup"),
     authorization: str | None = Header(default=None),
 ):
-    """
-    Creates a backup for the currently authenticated user.
-
-    1. Authenticate user
-    2. Create backup record
-    3. Upload files to Supabase Storage
-    4. Create backup_files records
-    5. Mark backup as success
-    """
 
     user = get_authenticated_user(authorization)
     user_id = str(user.id)
@@ -172,10 +171,7 @@ async def create_backup(
     if not backup_name:
         backup_name = "Manual Backup"
 
-    # -----------------------------------------------------
-    # Create initial backup database record
-    # -----------------------------------------------------
-
+    # Create backup record
     backup_response = (
         supabase
         .table("backups")
@@ -206,10 +202,8 @@ async def create_backup(
     total_size = 0
 
     try:
-        # -------------------------------------------------
-        # Upload every file
-        # -------------------------------------------------
 
+        # Upload every file
         for upload_file in files:
 
             if not upload_file.filename:
@@ -218,7 +212,6 @@ async def create_backup(
                     detail="One of the selected files has no filename.",
                 )
 
-            # Prevent path traversal and use only the actual filename.
             safe_filename = PurePath(upload_file.filename).name
 
             if not safe_filename:
@@ -237,15 +230,18 @@ async def create_backup(
                     detail=f"{safe_filename} is larger than 5 MB.",
                 )
 
-            storage_path = f"{user_id}/{backup_id}/{safe_filename}"
+            storage_path = (
+                f"{user_id}/{backup_id}/{safe_filename}"
+            )
 
-            # Upload to Supabase Storage
             supabase.storage.from_(BUCKET).upload(
                 path=storage_path,
                 file=content,
                 file_options={
-                    "content-type": upload_file.content_type
-                    or "application/octet-stream",
+                    "content-type": (
+                        upload_file.content_type
+                        or "application/octet-stream"
+                    ),
                     "upsert": "false",
                 },
             )
@@ -265,20 +261,16 @@ async def create_backup(
 
             total_size += file_size
 
-        # -------------------------------------------------
         # Save file records
-        # -------------------------------------------------
-
         if backup_file_records:
             supabase.table("backup_files").insert(
                 backup_file_records
             ).execute()
 
-        # -------------------------------------------------
-        # Mark backup as successful
-        # -------------------------------------------------
-
-        completed_at = datetime.now(timezone.utc).isoformat()
+        # Mark backup successful
+        completed_at = datetime.now(
+            timezone.utc
+        ).isoformat()
 
         supabase.table("backups").update(
             {
@@ -287,7 +279,9 @@ async def create_backup(
                 "total_size_bytes": total_size,
                 "completed_at": completed_at,
             }
-        ).eq("id", backup_id).eq("user_id", user_id).execute()
+        ).eq("id", backup_id).eq(
+            "user_id", user_id
+        ).execute()
 
         return {
             "message": "Backup completed successfully.",
@@ -307,39 +301,142 @@ async def create_backup(
 
     except HTTPException:
 
-        # Clean up uploaded files
         if uploaded_paths:
             try:
-                supabase.storage.from_(BUCKET).remove(uploaded_paths)
+                supabase.storage.from_(BUCKET).remove(
+                    uploaded_paths
+                )
             except Exception:
                 pass
 
         supabase.table("backups").update(
             {
                 "status": "failed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "completed_at": datetime.now(
+                    timezone.utc
+                ).isoformat(),
             }
-        ).eq("id", backup_id).eq("user_id", user_id).execute()
+        ).eq("id", backup_id).eq(
+            "user_id", user_id
+        ).execute()
 
         raise
 
     except Exception as error:
 
-        # Clean up uploaded files
         if uploaded_paths:
             try:
-                supabase.storage.from_(BUCKET).remove(uploaded_paths)
+                supabase.storage.from_(BUCKET).remove(
+                    uploaded_paths
+                )
             except Exception:
                 pass
 
         supabase.table("backups").update(
             {
                 "status": "failed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "completed_at": datetime.now(
+                    timezone.utc
+                ).isoformat(),
             }
-        ).eq("id", backup_id).eq("user_id", user_id).execute()
+        ).eq("id", backup_id).eq(
+            "user_id", user_id
+        ).execute()
 
         raise HTTPException(
             status_code=500,
             detail=f"Backup failed: {str(error)}",
+        )
+
+
+# ---------------------------------------------------------
+# BACKUP HISTORY
+# ---------------------------------------------------------
+
+@app.get("/api/backups")
+def get_backup_history(
+    authorization: str | None = Header(default=None),
+):
+
+    user = get_authenticated_user(authorization)
+    user_id = str(user.id)
+
+    try:
+
+        # Get only this user's backups.
+        backup_response = (
+            supabase
+            .table("backups")
+            .select(
+                "id,"
+                "backup_name,"
+                "status,"
+                "total_files,"
+                "total_size_bytes,"
+                "created_at,"
+                "completed_at"
+            )
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        backups = backup_response.data or []
+
+        # Get file records for those backups.
+        if backups:
+
+            backup_ids = [
+                backup["id"]
+                for backup in backups
+            ]
+
+            files_response = (
+                supabase
+                .table("backup_files")
+                .select(
+                    "backup_id,"
+                    "file_name,"
+                    "storage_path,"
+                    "file_size_bytes,"
+                    "file_type"
+                )
+                .eq("user_id", user_id)
+                .in_("backup_id", backup_ids)
+                .order("created_at", desc=False)
+                .execute()
+            )
+
+            files = files_response.data or []
+
+            files_by_backup = {}
+
+            for file in files:
+                backup_id = file["backup_id"]
+
+                if backup_id not in files_by_backup:
+                    files_by_backup[backup_id] = []
+
+                files_by_backup[backup_id].append(file)
+
+        else:
+            files_by_backup = {}
+
+        # Attach files to each backup.
+        for backup in backups:
+            backup["files"] = files_by_backup.get(
+                backup["id"],
+                []
+            )
+
+        return {
+            "count": len(backups),
+            "backups": backups,
+        }
+
+    except Exception as error:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not load backup history: {str(error)}",
         )
