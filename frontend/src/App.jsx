@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Backup from "./pages/Backup";
 import BackupHistory from "./pages/BackupHistory";
 import Disaster from "./pages/Disaster";
+import Restore from "./pages/Restore";
+import RecoveryHistory from "./pages/RecoveryHistory";
 import PlaceholderPage from "./pages/PlaceholderPage";
 
 import Login from "./pages/Login";
@@ -26,41 +28,47 @@ function ProtectedLayout() {
 
           <Routes>
 
-            {/* Dashboard */}
             <Route
               path="/"
               element={<Dashboard />}
             />
 
-            {/* Backup Files */}
             <Route
               path="/backup"
               element={<Backup />}
             />
 
-            {/* Backup History */}
             <Route
               path="/history"
               element={<BackupHistory />}
             />
 
-            {/* Disaster Simulation */}
             <Route
               path="/disaster"
               element={<Disaster />}
             />
 
-            {/* Remaining pages */}
+            <Route
+              path="/restore"
+              element={<Restore />}
+            />
+
+            <Route
+              path="/recovery-history"
+              element={<RecoveryHistory />}
+            />
+
             {menuItems
               .filter(
                 (item) =>
                   item.path !== "/" &&
                   item.path !== "/backup" &&
                   item.path !== "/history" &&
-                  item.path !== "/disaster"
+                  item.path !== "/disaster" &&
+                  item.path !== "/restore" &&
+                  item.path !== "/recovery-history"
               )
               .map((item) => (
-
                 <Route
                   key={item.path}
                   path={item.path}
@@ -68,12 +76,13 @@ function ProtectedLayout() {
                     <PlaceholderPage
                       icon={item.icon}
                       title={item.label}
-                      description={item.description}
+                      description={
+                        item.description
+                      }
                       phase={item.phase}
                     />
                   }
                 />
-
               ))}
 
           </Routes>
@@ -87,11 +96,9 @@ function ProtectedLayout() {
 
 
 function App() {
-
   return (
     <Routes>
 
-      {/* Public */}
       <Route
         path="/login"
         element={<Login />}
@@ -102,7 +109,6 @@ function App() {
         element={<Register />}
       />
 
-      {/* Protected application */}
       <Route
         path="*"
         element={<ProtectedLayout />}
